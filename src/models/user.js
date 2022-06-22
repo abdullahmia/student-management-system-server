@@ -1,5 +1,6 @@
 const { Schema, model } = require("mongoose");
 const Joi = require("joi");
+const bcrypt = require("bcryptjs");
 
 // user Schema
 const userSchema = new Schema({
@@ -35,12 +36,26 @@ const userSchema = new Schema({
     },
 });
 
+userSchema.pre("save", async function (next) {
+    const user = this;
+    const hash = await bcrypt.hash(user.password, 10);
+    this.password = hash;
+    next();
+});
+
+userSchema.methods.isValidPassword = async function (password) {
+    const user = this;
+    const compare = await bcrypt.compare(password, user.password);
+    return compare;
+};
+
 // field validate with joi
 const validateUser = (user) => {
     const schema = Joi.object({
         firstName: Joi.string().min(3).max(20).required(),
         lastName: Joi.string().min(3).max(20).required(),
         email: Joi.string().required(),
+        role: Joi.string().required(),
     });
     return schema.validate(user);
 };
