@@ -1,5 +1,4 @@
-const { Schema, model } = require("mongoose");
-const Joi = require("joi");
+const { Schema, model, Types } = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 // user Schema
@@ -36,6 +35,41 @@ const userSchema = new Schema({
     },
 });
 
+// Student Schema
+const studentSchema = new Schema({
+    user: {
+        type: Types.ObjectId,
+        ref: "User",
+        requried: true,
+    },
+    semester: {
+        type: Number,
+        requried: true,
+    },
+    department: {
+        type: String,
+        required: true,
+    },
+    session: {
+        type: String,
+        required: true,
+    },
+    phone: {
+        Type: Number,
+    },
+    country: String,
+    city: String,
+    presentAddress: String,
+    parmanentAddress: String,
+    religion: String,
+    gurdianName: String,
+    gurdianPhone: Number,
+    dateOfBirth: {
+        type: Date,
+        trim: true,
+    },
+});
+
 userSchema.pre("save", async function (next) {
     const user = this;
     const hash = await bcrypt.hash(user.password, 10);
@@ -49,17 +83,6 @@ userSchema.methods.isValidPassword = async function (password) {
     return compare;
 };
 
-// field validate with joi
-const validateUser = (user) => {
-    const schema = Joi.object({
-        firstName: Joi.string().min(3).max(20).required(),
-        lastName: Joi.string().min(3).max(20).required(),
-        email: Joi.string().required(),
-        role: Joi.string().required(),
-    });
-    return schema.validate(user);
-};
-
 const User = model("User", userSchema);
-module.exports.User = User;
-module.exports.validateUser = validateUser;
+const Student = model("Student", studentSchema);
+module.exports = { User, Student };

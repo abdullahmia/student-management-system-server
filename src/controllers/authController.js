@@ -1,28 +1,26 @@
 const sendMail = require("../lib/nodemailer");
 const { passwordGenarate } = require("../utils/passwordGenarate");
-const { User, validateUser } = require("../models/user");
+const { User, Student } = require("../models/user");
 const _ = require("lodash");
 const { createResponse } = require("../utils/responseGenarate");
 const issueJWT = require("../lib/jwt");
 
 // create user by admin
 module.exports.createUser = async (req, res) => {
-    const error = validateUser(req.body);
-    if (error.error)
-        return res
-            .status(400)
-            .json(
-                createResponse(null, error.error.details[0].message, true, null)
-            );
+    const { firstName, lastName, email, role, semester, department, session } =
+        req.body;
 
-    const { firstName, lastName, email, role } = req.body;
     if (firstName && lastName && email) {
         // checking if user is already is exist
         let isUser = await User.findOne({ email });
         if (isUser) {
-            return res
-                .status(409)
-                .json(createResponse(null, "Already have an user"));
+            // checking is student collection is already is exist
+            const isStudent = await Student.findOne({ user: isUser._id });
+            if (isStudent) {
+                return res
+                    .status(409)
+                    .json(createResponse(null, "Already have an user"));
+            }
         } else {
             let password = passwordGenarate();
             const user = new User({
@@ -40,6 +38,17 @@ module.exports.createUser = async (req, res) => {
                 "your account credentials",
                 `Your Email: ${email}, Your Password: ${password}`
             );
+
+            if (role === "student") {
+                // create a student
+                const student = new Student({
+                    user: user._id,
+                    semester,
+                    department,
+                    session,
+                });
+                await student.save();
+            }
             return res
                 .status(201)
                 .json(
