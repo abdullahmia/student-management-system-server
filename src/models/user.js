@@ -70,6 +70,26 @@ const studentSchema = new Schema({
     },
 });
 
+// Teacher Schema
+const teacherSchema = new Schema({
+    user: {
+        type: Types.ObjectId,
+        ref: "User",
+        required: true,
+    },
+    phoneNumber: Number,
+    country: String,
+    city: String,
+    presentAddress: String,
+    parmanentAddress: String,
+    dateOfBirth: String,
+    religion: String,
+    eq: {
+        type: Array,
+        default: [],
+    },
+});
+
 userSchema.pre("save", async function (next) {
     const user = this;
     const hash = await bcrypt.hash(user.password, 10);
@@ -85,4 +105,5 @@ userSchema.methods.isValidPassword = async function (password) {
 
 const User = model("User", userSchema);
 const Student = model("Student", studentSchema);
-module.exports = { User, Student };
+const Teacher = model("Teacher", teacherSchema);
+module.exports = { User, Student, Teacher };

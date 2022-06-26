@@ -1,6 +1,6 @@
 const sendMail = require("../lib/nodemailer");
 const { passwordGenarate } = require("../utils/passwordGenarate");
-const { User, Student } = require("../models/user");
+const { User, Student, Teacher } = require("../models/user");
 const _ = require("lodash");
 const { createResponse } = require("../utils/responseGenarate");
 const issueJWT = require("../lib/jwt");
@@ -9,18 +9,14 @@ const issueJWT = require("../lib/jwt");
 module.exports.createUser = async (req, res) => {
     const { firstName, lastName, email, role, semester, department, session } =
         req.body;
-
     if (firstName && lastName && email) {
         // checking if user is already is exist
+
         let isUser = await User.findOne({ email });
         if (isUser) {
-            // checking is student collection is already is exist
-            const isStudent = await Student.findOne({ user: isUser._id });
-            if (isStudent) {
-                return res
-                    .status(409)
-                    .json(createResponse(null, "Already have an user"));
-            }
+            return res
+                .status(409)
+                .json(createResponse(null, "Already have an user"));
         } else {
             let password = passwordGenarate();
             const user = new User({
@@ -48,6 +44,10 @@ module.exports.createUser = async (req, res) => {
                     session,
                 });
                 await student.save();
+            } else if (role === "teacher") {
+                // create a teacher
+                const teacher = new Teacher({ user: user._id });
+                await teacher.save();
             }
             return res
                 .status(201)
