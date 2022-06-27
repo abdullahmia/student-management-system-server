@@ -7,19 +7,18 @@ module.exports.isLoggedIn = async (req, res, next) => {
     if (!token) {
         return res.status(401).json(createResponse(null, "Access Denied"));
     } else {
-        token = token.split(" ")[1].trim();
-    }
-
-    try {
-        // decode the jwt
-        const decoded = await jsonwebtoken.verify(
-            token,
-            process.env.JWT_SECRET
-        );
-        req.user = decoded;
-        next();
-    } catch (error) {
-        return res.status(400).send("Invalid Token!");
+        try {
+            token = token.split(" ")[1].trim();
+            // decode the jwt
+            const decoded = await jsonwebtoken.verify(
+                token,
+                process.env.JWT_SECRET
+            );
+            req.user = decoded;
+            next();
+        } catch (error) {
+            return res.status(400).send("Invalid Token!");
+        }
     }
 };
 
