@@ -25,7 +25,7 @@ const subjectSchema = new Schema({
         type: Number,
         requried: true,
     },
-    departmnet: {
+    department: {
         type: Types.ObjectId,
         ref: "Department",
         requried: true,
