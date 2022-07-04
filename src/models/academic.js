@@ -1,4 +1,5 @@
 const { Schema, model, Types } = require("mongoose");
+const slugify = require("slugify");
 
 // Department Schema
 const departmentSchema = new Schema(
@@ -38,6 +39,15 @@ const subjectSchema = new Schema({
         type: String,
         default: "download-removebg-preview_gbalkk",
     },
+    slug: {
+        type: String,
+        uniqe: true,
+    },
+});
+
+subjectSchema.pre("save", async function (next) {
+    this.slug = await slugify(this.name);
+    next();
 });
 
 const Department = model("Department", departmentSchema);

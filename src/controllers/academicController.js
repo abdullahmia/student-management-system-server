@@ -34,16 +34,24 @@ module.exports.getDepartments = async (req, res) => {
     res.status(200).json(createResponse(departments, "Departments", false));
 };
 
-// Delete al department
+// Delete a department
 module.exports.deleteDepartment = async (req, res) => {
     try {
         let id = req.params.id;
 
         // check if department is exist
         const department = await Department.findById(id);
-        cloudinary.uploader.destroy(department.image);
-        await Department.deleteOne({ _id: id });
-        return res.status(202).json(createResponse(null, "Department Deleted"));
+        if (department) {
+            cloudinary.uploader.destroy(department.image);
+            await Department.deleteOne({ _id: id });
+            return res
+                .status(202)
+                .json(createResponse(null, "Department Deleted"));
+        } else {
+            res.status(404).json(
+                createResponse(null, "Department not found", true, null)
+            );
+        }
     } catch (error) {
         res.status(404).json(
             createResponse(null, "Department not found", true, null)
@@ -98,15 +106,10 @@ module.exports.createSubject = async (req, res) => {
     const { semester, department, name } = req.body;
 
     try {
-        // checking if department is exist
-        // eslint-disable-next-line no-unused-vars
         const isDepartmentExist = await Department.findOne({ _id: department });
-
-        // checking if subject is exist
-        let subject = await Subject.findOne({ semester, department });
-        if (!subject) {
+        if (isDepartmentExist) {
             const uploader = cloudinary.uploader.upload(req.file.path);
-            subject = new Subject({
+            const subject = new Subject({
                 semester,
                 department,
                 name,
@@ -115,11 +118,11 @@ module.exports.createSubject = async (req, res) => {
             subject.save();
             return res
                 .status(201)
-                .json(createResponse(subject, "Subject added"));
+                .json(createResponse(subject, "Subject added", false, null));
         } else {
             return res
                 .status(202)
-                .json(createResponse(null, "Subject already exist"));
+                .json(createResponse(null, "Department not found", true, null));
         }
     } catch (error) {
         return res
@@ -130,7 +133,7 @@ module.exports.createSubject = async (req, res) => {
 
 // get all subject
 module.exports.getSubjects = async (req, res) => {
-    const subjects = await Subject.find({});
+    const subjects = await Subject.find({}).populate("department");
     return res.status(200).json(createResponse(subjects, "All Subject"));
 };
 
