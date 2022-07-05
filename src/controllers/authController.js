@@ -16,7 +16,7 @@ module.exports.createUser = async (req, res) => {
         if (isUser) {
             return res
                 .status(409)
-                .json(createResponse(null, "Already have an user"));
+                .json(createResponse(null, "Already have an user", true));
         } else {
             let password = passwordGenarate();
             const user = new User({
@@ -101,5 +101,92 @@ module.exports.login = async (req, res) => {
                 token
             )
         );
+    } else {
+        return res
+            .status(400)
+            .json(createResponse(null, "Field Requred", true));
+    }
+};
+
+// get user by role
+module.exports.getUsers = async (req, res) => {
+    const role = req.params.role;
+    const users = await User.find({ role }).select("-password");
+    return res.status(200).json(createResponse(users, "users"));
+};
+
+// delete a user by role and id
+module.exports.deleteUserByRoleId = async (req, res) => {
+    try {
+        const { role, id } = req.params;
+        const user = await User.findOne({ _id: id, role });
+        if (user) {
+            if (role === "teacher") {
+                await User.findOneAndDelete({ _id: id, role });
+                await Teacher.findOneAndDelete({ user: id });
+                return res
+                    .status(200)
+                    .json(createResponse(null, "Teacher has been deleted"));
+            } else if (role === "student") {
+                await User.findOneAndDelete({ _id: id, role });
+                await Student.findOneAndDelete({ user: id });
+                return res
+                    .status(200)
+                    .json(createResponse(null, "Student has been deleted"));
+            }
+        } else {
+            return res
+                .status(404)
+                .json(createResponse(null, "User not found", true));
+        }
+    } catch (error) {
+        return res
+            .status(404)
+            .json(createResponse(null, "User not found", true));
+    }
+};
+
+// change password
+module.exports.changePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword, confrimPassword } = req.body;
+        if (oldPassword && newPassword && confrimPassword) {
+            if (newPassword === confrimPassword) {
+                let user = req.user;
+                user = await User.findOne({ _id: user._id, email: user.email });
+                let isValidUser = await user.isValidPassword(oldPassword);
+                if (!isValidUser) {
+                    return res
+                        .status(401)
+                        .json(createResponse(null, "Invalid Credientials"));
+                } else {
+                    user.password = confrimPassword;
+                    await user.save();
+                    return res
+                        .status(200)
+                        .json(
+                            createResponse(null, "Password has been changed")
+                        );
+                }
+            } else {
+                return res
+                    .status(404)
+                    .json(
+                        createResponse(
+                            null,
+                            "Password and confirm password not matched",
+                            true
+                        )
+                    );
+            }
+        } else {
+            return res
+                .status(400)
+                .json(createResponse(null, "Field Requred", true));
+        }
+    } catch (error) {
+        return res
+            .status(404)
+            .json(createResponse(null, "User not found", true));
     }
 };

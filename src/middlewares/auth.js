@@ -30,6 +30,8 @@ module.exports.isAdmin = async (req, res, next) => {
     if (role === dbUser.role) {
         next();
     } else {
-        return res.status(403).json(createResponse(null, "Forbidden"));
+        return res
+            .status(403)
+            .json(createResponse(null, "Access Denied", true));
     }
 };
