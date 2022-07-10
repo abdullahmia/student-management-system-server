@@ -4,6 +4,8 @@ const {
     getUsers,
     deleteUserByRoleId,
     changePassword,
+    forgotPasswordEmailSend,
+    resetPassword,
 } = require("../controllers/authController");
 const { isLoggedIn, isAdmin } = require("../middlewares/auth");
 
@@ -17,5 +19,7 @@ router
     .delete([isLoggedIn, isAdmin], deleteUserByRoleId);
 
 router.route("/password-change").patch(isLoggedIn, changePassword);
+router.route("/forgot-password").post(forgotPasswordEmailSend);
+router.route("/reset-password/:user/:token").patch(resetPassword);
 
 module.exports = router;

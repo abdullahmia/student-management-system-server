@@ -1,9 +1,10 @@
 const sendMail = require("../lib/nodemailer");
 const { passwordGenarate } = require("../utils/passwordGenarate");
-const { User, Student, Teacher } = require("../models/user");
+const { User, Student, Teacher, Token } = require("../models/user");
 const _ = require("lodash");
 const { createResponse } = require("../utils/responseGenarate");
 const issueJWT = require("../lib/jwt");
+const crypto = require("crypto");
 
 // create user by admin
 module.exports.createUser = async (req, res) => {
@@ -158,7 +159,9 @@ module.exports.changePassword = async (req, res) => {
                 if (!isValidUser) {
                     return res
                         .status(401)
-                        .json(createResponse(null, "Invalid Credientials"));
+                        .json(
+                            createResponse(null, "Old password is not correct")
+                        );
                 } else {
                     user.password = confrimPassword;
                     await user.save();
@@ -188,5 +191,88 @@ module.exports.changePassword = async (req, res) => {
         return res
             .status(404)
             .json(createResponse(null, "User not found", true));
+    }
+};
+
+// forgot password email send
+module.exports.forgotPasswordEmailSend = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res
+                .status(404)
+                .json(createResponse(null, "Email has been requried", true));
+        }
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res
+                .status(404)
+                .json(
+                    createResponse(null, "User not found with this email", true)
+                );
+        }
+
+        let token = await Token.findOne({ user: user._id });
+        if (!token) {
+            token = new Token({
+                user: user._id,
+                token: crypto.randomBytes(32).toString("hex"),
+            });
+            await token.save();
+        }
+        const url = `${process.env.CLIENT_URL}/password-reset/${user._id}/${token.token}`;
+        // send the url via mail
+        sendMail(user.email, "Password reset", url);
+        return res
+            .status(200)
+            .json(
+                createResponse(
+                    null,
+                    "Password reset link sent to your email account"
+                )
+            );
+    } catch (error) {
+        res.status(500).json(
+            createResponse(null, "Internal server error", true)
+        );
+    }
+};
+
+// reset your password
+module.exports.resetPassword = async (req, res) => {
+    try {
+        const { user, token } = req.params;
+        const { newPassword, confirmPassword } = req.body;
+        // find the user
+        let getUser = await User.findOne({ _id: user });
+        let userToken = await Token.findOne({ token: token });
+        if (getUser && userToken) {
+            if (newPassword === confirmPassword) {
+                getUser.password = confirmPassword;
+                await getUser.save();
+                return res
+                    .status(200)
+                    .json(createResponse(null, "Password has been reset"));
+            } else {
+                return res
+                    .status(404)
+                    .json(
+                        createResponse(
+                            null,
+                            "Password and confirm password not matched",
+                            true
+                        )
+                    );
+            }
+        } else {
+            return res
+                .status(404)
+                .json(createResponse(null, "Invalid Link", true));
+        }
+    } catch (error) {
+        res.status(500).json(
+            createResponse(null, "Internal server error", true)
+        );
     }
 };

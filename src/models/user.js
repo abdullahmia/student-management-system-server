@@ -35,6 +35,24 @@ const userSchema = new Schema({
     },
 });
 
+// token schela
+const tokenSchema = Schema(
+    {
+        user: {
+            type: Types.ObjectId,
+            ref: "User",
+            requried: true,
+            uniqe: true,
+        },
+        token: {
+            type: String,
+            uniqe: true,
+            requierd: true,
+        },
+    },
+    { timestamp: true }
+);
+
 // Student Schema
 const studentSchema = new Schema({
     user: {
@@ -104,6 +122,7 @@ userSchema.methods.isValidPassword = async function (password) {
 };
 
 const User = model("User", userSchema);
+const Token = model("Token", tokenSchema);
 const Student = model("Student", studentSchema);
 const Teacher = model("Teacher", teacherSchema);
-module.exports = { User, Student, Teacher };
+module.exports = { User, Student, Teacher, Token };
