@@ -5,6 +5,7 @@ const _ = require("lodash");
 const { createResponse } = require("../utils/responseGenarate");
 const issueJWT = require("../lib/jwt");
 const crypto = require("crypto");
+const cloudinary = require("../lib/cloudinary");
 
 // create user by admin
 module.exports.createUser = async (req, res) => {
@@ -71,6 +72,7 @@ module.exports.createUser = async (req, res) => {
 // user login
 module.exports.login = async (req, res) => {
     const { email, password } = req.body;
+    console.log(password);
     if (email && password) {
         const user = await User.findOne({ email });
         if (!user) {
@@ -89,13 +91,19 @@ module.exports.login = async (req, res) => {
 
         // creating token with jwt
         const token = issueJWT(user);
+        let image;
+        if (!user.image) {
+            image = "user_cowfsl";
+        } else {
+            image = user.image;
+        }
         return res.status(200).json(
             createResponse(
                 {
                     firstName: user.firstName,
                     lastName: user.lastName,
                     email: user.email,
-                    image: user.image,
+                    image: image,
                 },
                 "Login successfull",
                 false,
@@ -271,8 +279,52 @@ module.exports.resetPassword = async (req, res) => {
                 .json(createResponse(null, "Invalid Link", true));
         }
     } catch (error) {
-        res.status(500).json(
-            createResponse(null, "Internal server error", true)
-        );
+        return res
+            .status(500)
+            .json(createResponse(null, "Internal server error", true));
+    }
+};
+
+// uplaod profile picture
+module.exports.uploadProfile = async (req, res) => {
+    try {
+        const user = await User.findOne({ _id: req.user._id });
+        if (user) {
+            const file = req.file;
+            if (file.size < 2000000) {
+                if (user.image) {
+                    // delete the old user profile picture
+                    await cloudinary.uploader.destroy(user.image);
+                }
+
+                // upload the new profile picture
+
+                const uploadImage = await cloudinary.uploader.upload(
+                    req.file.path
+                );
+                user.image = await uploadImage.public_id;
+                await user.save();
+                return res.status(200).json(
+                    createResponse(
+                        {
+                            image: user.image,
+                        },
+                        "Profile picture uploaded"
+                    )
+                );
+            } else {
+                return res
+                    .status(500)
+                    .json(createResponse(null, "File is to big", true));
+            }
+        } else {
+            return res
+                .status(404)
+                .json(createResponse(null, "User not found", true));
+        }
+    } catch (error) {
+        return res
+            .status(500)
+            .json(createResponse(null, "Internal server error", true));
     }
 };

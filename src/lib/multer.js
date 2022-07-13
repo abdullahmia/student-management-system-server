@@ -21,7 +21,6 @@ var validateFile = function (file, cb) {
 
 const uploader = multer({
     storage: storage,
-    limits: { fileSize: 1000000 },
     fileFilter: function (req, file, callback) {
         validateFile(file, callback);
     },
